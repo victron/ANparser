@@ -1,0 +1,13 @@
+services charging billing-plan BP-TEST-WAPGW
+ rating-group RG_10_test_rswapgw
+  fraud-charging false
+ !
+ rating-group RG_test_home_rswapgw
+  fraud-charging false
+ !
+!
+services charging billing-plan BP-CORP-test
+ rating-group RG_10_CORP_test
+  fraud-charging false
+ !
+!

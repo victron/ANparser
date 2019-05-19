@@ -1,0 +1,19 @@
+service-construct service-rule SR_mmkelwflaw_2020
+ admin-state                                 enabled
+ priority                                    100
+ service-data-flow-id                        2020
+ http-rule-group                             HRG_msisdnffef3424
+ tcp-filter                                  all
+ service-activation                          always-on
+ install-default-bearer-packet-filters-on-ue disabled
+ packet-filter PF__01
+ !
+ packet-filter PF__02
+ !
+ packet-filter PF__03
+ !
+ packet-filter PF__04
+ !
+ packet-filter PF__05
+ !
+!

@@ -1,0 +1,51 @@
+service-construct service-rule SR_5001_GX-2535410
+ admin-state                                 enabled
+ priority                                    150
+ service-data-flow-id                        252001
+ tcp-filter                                  all
+ service-activation                          external-activation
+ pcc-rule-name                               25510
+ install-default-bearer-packet-filters-on-ue disabled
+ packet-filter PF__25001_01
+ !
+ packet-filter PF__25001_02
+ !
+ packet-filter PF__25001_03
+ !
+ packet-filter PF__25001_04
+ !
+ packet-filter PF__25001_05
+ !
+ packet-filter PF__25001_06
+ !
+!
+service-construct service-rule SR__5052
+ admin-state                                 enabled
+ priority                                    560
+ service-data-flow-id                        5052
+ application-rule-group                      ARG_erfegfersz
+ tcp-filter                                  all
+ service-activation                          always-on
+ install-default-bearer-packet-filters-on-ue disabled
+!
+service-construct service-rule SR_wefwqfewf25001_GX-25X0
+ admin-state                                 enabled
+ priority                                    150
+ service-data-flow-id                        25234001
+ tcp-filter                                  all
+ service-activation                          external-activation
+ pcc-rule-name                               2575610
+ install-default-bearer-packet-filters-on-ue disabled
+ packet-filter PF_klekldwe_25001_01
+ !
+ packet-filter PF_klekldwe_25001_02
+ !
+ packet-filter PF_klekldwe_25001_03
+ !
+ packet-filter PF_klekldwe_25001_04
+ !
+ packet-filter PF_klekldwe_25001_05
+ !
+ packet-filter PF_klekldwe_25001_06
+ !
+!

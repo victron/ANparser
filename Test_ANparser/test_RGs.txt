@@ -1,0 +1,83 @@
+services charging rating-group RG_10_test_rsvolume-rule
+ charging-method            online
+ quota-id                   10
+ priority                   101
+ admin-state                enabled
+ multiplier                 1
+ measurement-method         volume
+ volume-measurement-count   totalOctets
+ volume-measurement-layer   layer3
+ tcp-retransmission         charge
+ quota-hold-time            999
+ reporting-level            serviceRule
+ volume-threshold           31458
+ credit-authorization-event firstSdfPkt
+ quota-black-list-timer     0
+ service-type               data
+ home-subscriber-charging   enabled
+ roamer-subscriber-charging disabled
+ enable-cdr                 true
+ ocs-response-grace-period  1
+ service-activation         always-on
+ requested-unit-value       157640
+ service-rule SR_CATest_rsvolume-rule_kjkjee
+ !
+!
+services charging rating-group RG_10_kjjkkhk_ijapgw
+ charging-method            online
+ quota-id                   10
+ priority                   99
+ admin-state                enabled
+ multiplier                 1
+ measurement-method         volume
+ volume-measurement-count   totalOctets
+ volume-measurement-layer   layer3
+ tcp-retransmission         charge
+ quota-hold-time            9999999
+ reporting-level            serviceRule
+ volume-threshold           314523728
+ credit-authorization-event firstSdfPkt
+ quota-black-list-timer     0
+ service-type               data
+ home-subscriber-charging   enabled
+ roamer-subscriber-charging enabled
+ enable-cdr                 true
+ ocs-response-grace-period  0
+ service-activation         always-on
+ requested-unit-value       153423728640
+ service-rule SR_CATefacaweswapgw
+ !
+ service-rule SR_msiswedweadawed011_rswapgw
+ !
+ service-rule SRewfefefet_1012_rswapgw
+ !
+ service-rule SR_waefewferffrswapgw
+ !
+ service-rule SR_wafeweferfefefrswapgw
+ !
+!
+services charging rating-group RG_klwkfelmflkewmfklwmming
+ charging-method            online
+ quota-id                   10
+ priority                   29
+ admin-state                enabled
+ multiplier                 1
+ measurement-method         volume
+ volume-measurement-count   totalOctets
+ volume-measurement-layer   layer3
+ tcp-retransmission         charge
+ quota-hold-time            9999999
+ reporting-level            serviceRule
+ volume-threshold           31489795728
+ credit-authorization-event firstSdfPkt
+ quota-black-list-timer     0
+ service-type               data
+ home-subscriber-charging   enabled
+ roamer-subscriber-charging enabled
+ enable-cdr                 true
+ ocs-response-grace-period  1
+ service-activation         always-on
+ requested-unit-value       1572821312640
+ service-rule SR_default_rs_roaming
+ !
+!
