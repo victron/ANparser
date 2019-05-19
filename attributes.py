@@ -1,7 +1,8 @@
 import logging
-from typing import IO, AnyStr, Union
 from pathlib import Path
+import io
 from os import linesep
+import os
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -13,7 +14,8 @@ SR_commands = ["admin-state",
                "service-activation",
                "pcc-rule-name",
                "install-default-bearer-packet-filters-on-ue",
-               "http-rule-group"
+               "http-rule-group",
+               "application-rule-group"
                ]
 SR_multiple_comands = ["packet-filter"]
 SR_attrs = {k: k.replace("-", "_") for k in SR_commands}
@@ -94,6 +96,7 @@ class GenObj:
             return newObj
 
     def _end(self, line):
+        line = line.rstrip()
         if line == "!":
             self.end = True
 
@@ -114,6 +117,7 @@ class TopObj(GenObj):
 
     def _end(self, line):
         super()._end(line)
+        line = line.rstrip()
         if line == self.listSep:
             pass
 
@@ -130,29 +134,43 @@ class SR(TopObj):
         # self.tree_keywordsR = {}
 
 
-FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
 
 class Parser:
-    def __init__(self, file: FilePathOrBuffer):
+    def __init__(self, fORstr):
         self.sr = {}
         self.rg = {}
         self.pf = {}
-        self._parser(file)
+        data = self._fileORstr(fORstr)
+        self._parser(data)
+
+    def _fileORstr(self, fORstr):
+        if "\n" in fORstr:
+            # there is string with "\n", so it's not filePath
+            return io.StringIO(fORstr)
+        else:
+            return io.open(fORstr, "r", encoding="utf-8")
 
 
-
-    def _parser(self, file: FilePathOrBuffer):
+    def _parser(self, data):
         obj = GenObj()
-        for line in file.split('\n'):
+        for line in data:
+            # if line in ["\n", "\r\n", "\r"]:
+            #     print("conti")
+            #     continue
+            # print("line", line)
+            # if not obj.end:
+            obj = obj.set_param(line)
+            # print("obj=", obj)
             if not obj.end:
-                obj = obj.set_param(line)
+                continue
+
+            t = type(obj).__name__
+            if t == "SR":
+                self.sr[obj.name] = obj
             else:
-                t = type(obj).__name__
-                if t == "SR":
-                    self.sr[obj.name] = obj
-                else:
-                    raise KeyError(f'unknow type {type(obj).__name__}')
-                obj = GenObj()
+                raise KeyError(f'unknow type {type(obj).__name__}')
+            obj = GenObj()
+            # print("obj2=", obj)
 
-
+        data.close()
 
