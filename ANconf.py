@@ -66,6 +66,7 @@ BP_ignors = {k: k.replace("-", "_") for k in BR_ignored_comands}
 
 
 class GenObj:
+    # TODO: redu via collections.MutableMapping
     def __init__(self, topObj=None):
         self.name = ""
         self.keywords = {}
@@ -183,8 +184,14 @@ class load:
         self.rg = {}
         self.sr = {}
         self.pf = {}
-        data = self._fileORstr(fORstr)
-        self._parser(data)
+        if type(fORstr) == list:
+            # decide that multiple files provided
+            for file in fORstr:
+                data = self._fileORstr(file)
+                self._parser(data)
+        else:
+            data = self._fileORstr(fORstr)
+            self._parser(data)
 
     def _fileORstr(self, fORstr):
         if "\n" in fORstr:

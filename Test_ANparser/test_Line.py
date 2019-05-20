@@ -145,6 +145,32 @@ class Test_2_RGs(unittest.TestCase):
                     except AttributeError:
                         pass
 
+    def test_3_load_multiple_files(self):
+        file_list = [pair_text_BP[0]["in"], pair_text_RG[0]["in"]]
+        result = load(file_list)
+        with open(pair_text_BP[0]["out"], "rb") as f:
+            BPs_etalon = pickle.load(f)
+        with open(pair_text_RG[0]["out"], "rb") as f:
+            RGs_etalon = pickle.load(f)
+        for res in BPs_etalon.bp:
+            # print("name=", result_etalon.bp[res].name, result.bp[res].name)
+            self.assertEqual(BPs_etalon.bp[res].name, result.bp[res].name)
+            for field in BPs_etalon.bp[res].allKeys:
+                try:
+                    # print(f"field= {field} = ", result_etalon.bp[res][field], result.bp[res][field])
+                    self.assertEqual(BPs_etalon.bp[res][field], result.bp[res][field])
+                except AttributeError:
+                    pass
+
+        for res in RGs_etalon.rg:
+            self.assertEqual(RGs_etalon.rg[res].name, result.rg[res].name)
+            for field in RGs_etalon.rg[res].allKeys:
+                try:
+                    self.assertEqual(RGs_etalon.rg[res][field], result.rg[res][field])
+                except AttributeError:
+                    pass
+
+
 # ########### private tests ############
 # class Test_3_ALLs(unittest.TestCase):
 #     def test_1_separated_files(self):
