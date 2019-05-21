@@ -68,7 +68,7 @@ BP_ignors = {k: k.replace("-", "_") for k in BR_ignored_comands}
 class GenObj:
     # TODO: redu via collections.MutableMapping
     def __init__(self, topObj=None):
-        self.name = ""
+        self.name = "GenObj"
         self.keywords = {}
         self.tree_keywords = {"service-construct service-rule": SR,
                               "services charging rating-group": RG,
@@ -122,6 +122,9 @@ class GenObj:
         line = line.rstrip()
         if line == "!":
             self.end = True
+
+    def show(self):
+        dump(self, False, True)
 
 
 class TopObj(GenObj):
@@ -287,3 +290,6 @@ class dump:
     def _dumpToFile(self, fileName):
         with open(fileName, "w", newline="") as f:
             f.write(self.output)
+
+class show(dump):
+    pass
