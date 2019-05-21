@@ -6,6 +6,25 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 #  should be in strict order, for correct dump working
+QF_commands_meta = [("admin-state", "m"),
+                    ("rate-measurement-units", "m"),
+                    ("uplink-mbr", "m"),
+                    ("downlink-mbr", "m"),
+                    ("uplink-gbr", "m"),
+                    ("downlink-gbr", "m"),
+                    ("uplink-max-burst", "m"),
+                    ("uplink-guaranteed-burst", "m"),
+                    ("downlink-max-burst", "m"),
+                    ("downlink-guaranteed-burst", "m"),
+                    ("gate", "m"),
+                    ("priority", "m"),
+                    ("bearer-control", "m"),
+                    ("service-activation", "m"),
+                    ("aggregate-qos-flow", "m"),
+                    ]
+QF_multiple_comands = ["service-rule", ]
+QF_ignored_comands = []
+
 SR_commands_meta = [("admin-state", "m"),
                     ("priority", "m"),
                     ("service-data-flow-id", "m"),
@@ -18,6 +37,7 @@ SR_commands_meta = [("admin-state", "m"),
                     ]
 SR_multiple_comands = ["packet-filter"]
 SR_ignored_comands = []
+
 RG_commands_meta = [("charging-method", "m"),
                     ("quota-id", "m"),
                     ("priority", "m"),
@@ -42,9 +62,10 @@ RG_commands_meta = [("charging-method", "m"),
                     ("monitor-key-string", "pcc"),
                     ("one-time-redirection", "o"),
                     ("requested-unit-value", "m"),
-]
+                    ]
 RG_multiple_comands = ["service-rule", ]
 RG_ignored_comands = []
+
 BP_commands = []
 BP_multiple_comands = ["rating-group", ]
 BR_ignored_comands = ["fraud-charging", ]
@@ -60,9 +81,15 @@ RG_commands = [i[0] for i in RG_commands_meta]
 RG_attrs = {k: k.replace("-", "_") for k in RG_commands}
 RG_lists = {k: k.replace("-", "_") for k in RG_multiple_comands}
 RG_ignors = {k: k.replace("-", "_") for k in RG_ignored_comands}
+
 BP_attrs = {k: k.replace("-", "_") for k in BP_commands}
 BP_lists = {k: k.replace("-", "_") for k in BP_multiple_comands}
 BP_ignors = {k: k.replace("-", "_") for k in BR_ignored_comands}
+
+QF_commands = [i[0] for i in QF_commands_meta]
+QF_attrs = {k: k.replace("-", "_") for k in QF_commands}
+QF_lists = {k: k.replace("-", "_") for k in QF_multiple_comands}
+QF_ignors = {k: k.replace("-", "_") for k in QF_ignored_comands}
 
 
 class GenObj:
@@ -70,9 +97,11 @@ class GenObj:
     def __init__(self, topObj=None):
         self.name = "GenObj"
         self.keywords = {}
+        # TODO: move in global scope or redu, same thing in dump class
         self.tree_keywords = {"service-construct service-rule": SR,
                               "services charging rating-group": RG,
-                              "services charging billing-plan": BP}
+                              "services charging billing-plan": BP,
+                              "services quality-of-service qos-flow": QF}
         self.list_keywords = {}
         self.ignors_keywords = {}
         self.allKeys = [*self.keywords, *self.tree_keywords, *self.list_keywords, *self.ignors_keywords]
@@ -169,6 +198,15 @@ class RG(TopObj):
         self.allKeys = [*self.keywords, *self.tree_keywords, *self.list_keywords]
 
 
+class QF(TopObj):
+    def __init__(self, topObj):
+        super().__init__(topObj)
+        self.keywords = QF_attrs
+        self.tree_keywords = {}
+        self.list_keywords = QF_lists
+        self.allKeys = [*self.keywords, *self.tree_keywords, *self.list_keywords]
+
+
 class BP(TopObj):
     def __init__(self, topObj):
         super().__init__(topObj)
@@ -179,14 +217,13 @@ class BP(TopObj):
         self.allKeys = [*self.keywords, *self.tree_keywords, *self.list_keywords, *self.ignors_keywords]
 
 
-
-
 class load:
     def __init__(self, fORstr):
         self.bp = {}
         self.rg = {}
         self.sr = {}
         self.pf = {}
+        self.qf = {}
         if type(fORstr) == list:
             # decide that multiple files provided
             for file in fORstr:
@@ -216,12 +253,15 @@ class load:
             if not obj.end:
                 continue
 
+            # TODO: save in SR, RG, BP, QF attribute
             if type(obj) == SR:
                 self.sr[obj.name] = obj
             elif type(obj) == RG:
                 self.rg[obj.name] = obj
             elif type(obj) == BP:
                 self.bp[obj.name] = obj
+            elif type(obj) == QF:
+                self.qf[obj.name] = obj
             else:
                 raise KeyError(f'unknow type {type(obj).__name__}')
             obj = GenObj()
@@ -235,16 +275,17 @@ class dump:
         # with open(file, "rw") as f:
         self.tree_keywordsR = {SR: "service-construct service-rule",
                                RG: "services charging rating-group",
-                               BP: "services charging billing-plan"}
+                               BP: "services charging billing-plan",
+                               QF: "services quality-of-service qos-flow"}
         self.output = ""
 
-        if type(obj) in [BP, RG, SR]:
+        if type(obj) in [BP, RG, SR, QF]:
             self._printOneObj(obj, stdOut)
         if type(obj) == dict:
             for val in obj.values():
                 self._printOneObj(val, stdOut)
         if type(obj) == load:
-            for attr in ["bp", "rg", "sr"]:
+            for attr in ["bp", "rg", "sr", "qf"]:
                 data = getattr(obj, attr)
                 for val in data.values():
                     self._printOneObj(val, stdOut)
@@ -266,7 +307,7 @@ class dump:
         # starting from python3.6 dicts is ordered
         commands = [command for command in obj.keywords.keys() if hasattr(obj, obj.keywords[command])]
         if commands:
-            max_keyword = max([len(command) for command in commands])   # for output justification
+            max_keyword = max([len(command) for command in commands])  # for output justification
         else:
             max_keyword = 0
         for command in commands:
@@ -291,5 +332,5 @@ class dump:
         with open(fileName, "w", newline="") as f:
             f.write(self.output)
 
-class show(dump):
-    pass
+# alias to dump class
+show = dump
