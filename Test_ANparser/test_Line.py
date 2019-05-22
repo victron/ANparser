@@ -2,7 +2,7 @@ import unittest
 import pickle
 from os import linesep
 # from ANparser import Line, LineRoot, LineCommand, LineEnd, SR
-from ANconf import GenObj, SR, load, dump
+from ANconf import Section, SR, load, dump
 
 import logging
 
@@ -75,7 +75,7 @@ pair_text_BP = [
 class Test_1_Objects(unittest.TestCase):
 
     def test_1line_type(self):
-        obj = GenObj()
+        obj = Section()
         for i, pair in enumerate(pairs_Line):
             line = pair["in"]
             obj = obj.set_param(line)
@@ -108,6 +108,7 @@ class Test_1_Objects(unittest.TestCase):
             result = load(pair["in"])
             with open(pair["out"], 'rb') as f:
                 result_etalon = pickle.load(f)
+                # pickle.dump(result, f)
             for res in result_etalon.sr:
                 self.assertEqual(result_etalon.sr[res].name, result.sr[res].name)
                 for field in result_etalon.sr[res].allKeys:
@@ -121,6 +122,7 @@ class Test_2_RGs(unittest.TestCase):
         for i, pair in enumerate(pair_text_RG):
             result = load(pair["in"])
             with open(pair["out"], "rb") as f:
+                # pickle.dump(result, f)
                 result_etalon = pickle.load(f)
             for res in result_etalon.rg:
                 self.assertEqual(result_etalon.rg[res].name, result.rg[res].name)
@@ -134,6 +136,7 @@ class Test_2_RGs(unittest.TestCase):
         for i, pair in enumerate(pair_text_BP):
             result = load(pair["in"])
             with open(pair["out"], "rb") as f:
+                # pickle.dump(result, f)
                 result_etalon = pickle.load(f)
             for res in result_etalon.bp:
                 # print("name=", result_etalon.bp[res].name, result.bp[res].name)

@@ -5,6 +5,9 @@ from os import linesep
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# top_sections = ("BP", "MI", "RG", "QF", "SR" )
+# top_sec = {"BP" : {}, "MI": {}, "RG": {}, "QF": {}, "SR": {}}
+
 #  should be in strict order, for correct dump working
 QF_commands_meta = [("admin-state", "m"),
                     ("rate-measurement-units", "m"),
@@ -92,10 +95,10 @@ QF_lists = {k: k.replace("-", "_") for k in QF_multiple_comands}
 QF_ignors = {k: k.replace("-", "_") for k in QF_ignored_comands}
 
 
-class GenObj:
+class Section:
     # TODO: redu via collections.MutableMapping
     def __init__(self, topObj=None):
-        self.name = "GenObj"
+        self.name = "Section"
         self.keywords = {}
         # TODO: move in global scope or redu, same thing in dump class
         self.tree_keywords = {"service-construct service-rule": SR,
@@ -156,7 +159,7 @@ class GenObj:
         dump(self, False, True)
 
 
-class TopObj(GenObj):
+class TopObj(Section):
     def __init__(self, topObj):
         super().__init__(topObj)
         self.listSep = 2 * " " + "!"
@@ -219,6 +222,7 @@ class BP(TopObj):
 
 class load:
     def __init__(self, fORstr):
+        # TODO: find better (auto) way to set empty attributes
         self.bp = {}
         self.rg = {}
         self.sr = {}
@@ -241,37 +245,27 @@ class load:
             return io.open(fORstr, "r", encoding="utf-8")
 
     def _parser(self, data):
-        obj = GenObj()
+        obj = Section()
         for line in data:
-            # if line in ["\n", "\r\n", "\r"]:
-            #     print("conti")
-            #     continue
-            # print("line", line)
-            # if not obj.end:
             obj = obj.set_param(line)
-            # print("obj=", obj)
             if not obj.end:
                 continue
 
             # TODO: save in SR, RG, BP, QF attribute
-            if type(obj) == SR:
-                self.sr[obj.name] = obj
-            elif type(obj) == RG:
-                self.rg[obj.name] = obj
-            elif type(obj) == BP:
-                self.bp[obj.name] = obj
-            elif type(obj) == QF:
-                self.qf[obj.name] = obj
+            if isinstance(obj, Section):
+                service = type(obj).__name__.lower()
+                if not hasattr(self, service):
+                    setattr(self, service, {})
+                getattr(self, service)[obj.name] = obj
             else:
                 raise KeyError(f'unknow type {type(obj).__name__}')
-            obj = GenObj()
-            # print("obj2=", obj)
+            obj = Section()
 
         data.close()
 
 
 class dump:
-    def __init__(self, obj: object = None, file=False, stdOut=False):
+    def __init__(self, obj: object = None, file=False, stdOut=False, file_append=False):
         # with open(file, "rw") as f:
         self.tree_keywordsR = {SR: "service-construct service-rule",
                                RG: "services charging rating-group",
@@ -291,7 +285,7 @@ class dump:
                     self._printOneObj(val, stdOut)
 
         if file:
-            self._dumpToFile(file)
+            self._dumpToFile(file, file_append)
 
     def __str__(self):
         return self.output
@@ -328,9 +322,14 @@ class dump:
         self.output += output
         # return output
 
-    def _dumpToFile(self, fileName):
-        with open(fileName, "w", newline="") as f:
-            f.write(self.output)
+    def _dumpToFile(self, fileName, file_append):
+        if file_append:
+            with open(fileName, "a", newline="") as f:
+                f.write(linesep)
+                f.write(self.output)
+        else:
+            with open(fileName, "w", newline="") as f:
+                f.write(self.output)
 
 # alias to dump class
 show = dump
