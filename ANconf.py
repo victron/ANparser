@@ -9,6 +9,10 @@ logger = logging.getLogger(__name__)
 # top_sec = {"BP" : {}, "MI": {}, "RG": {}, "QF": {}, "SR": {}}
 
 #  should be in strict order, for correct dump working
+MI_commands_meta = [("admin-state", "m"), ]
+MI_multiple_comands = ["rating-group", ]
+MI_ignored_comands = []
+
 QF_commands_meta = [("admin-state", "m"),
                     ("rate-measurement-units", "m"),
                     ("uplink-mbr", "m"),
@@ -74,6 +78,11 @@ BP_multiple_comands = ["rating-group", ]
 BR_ignored_comands = ["fraud-charging", ]
 
 # ---------------- Generators ----------------
+MI_commands = [i[0] for i in MI_commands_meta]
+MI_attrs = {k: k.replace("-", "_") for k in MI_commands}
+MI_lists = {k: k.replace("-", "_") for k in MI_multiple_comands}
+MI_ignors = {k: k.replace("-", "_") for k in MI_ignored_comands}
+
 SR_commands = [i[0] for i in SR_commands_meta]
 SR_attrs = {k: k.replace("-", "_") for k in SR_commands}
 SR_lists = {k: k.replace("-", "_") for k in SR_multiple_comands}
@@ -94,6 +103,16 @@ QF_attrs = {k: k.replace("-", "_") for k in QF_commands}
 QF_lists = {k: k.replace("-", "_") for k in QF_multiple_comands}
 QF_ignors = {k: k.replace("-", "_") for k in QF_ignored_comands}
 
+class Config:
+    def __init__(self):
+        # TODO: find better (auto) way to set empty attributes
+        self.bp = {}
+        self.rg = {}
+        self.sr = {}
+        self.pf = {}
+        self.qf = {}
+        self.mi = {}
+
 
 class Section:
     # TODO: redu via collections.MutableMapping
@@ -104,7 +123,9 @@ class Section:
         self.tree_keywords = {"service-construct service-rule": SR,
                               "services charging rating-group": RG,
                               "services charging billing-plan": BP,
-                              "services quality-of-service qos-flow": QF}
+                              "services quality-of-service qos-flow": QF,
+                              "services metering metering-instance": MI,
+                              }
         self.list_keywords = {}
         self.ignors_keywords = {}
         self.allKeys = [*self.keywords, *self.tree_keywords, *self.list_keywords, *self.ignors_keywords]
@@ -187,9 +208,6 @@ class SR(TopObj):
         self.tree_keywords = {}
         self.list_keywords = SR_lists
         self.allKeys = [*self.keywords, *self.tree_keywords, *self.list_keywords]
-        # self.keywordsR = SR_attrsR
-        # self.list_keywordsR = SR_listsR
-        # self.tree_keywordsR = {}
 
 
 class RG(TopObj):
@@ -219,15 +237,18 @@ class BP(TopObj):
         self.ignors_keywords = BP_ignors
         self.allKeys = [*self.keywords, *self.tree_keywords, *self.list_keywords, *self.ignors_keywords]
 
+class MI(TopObj):
+    def __init__(self, topObj):
+        super().__init__(topObj)
+        self.keywords = MI_attrs
+        self.tree_keywords = {}
+        self.list_keywords = MI_lists
+        self.allKeys = [*self.keywords, *self.tree_keywords, *self.list_keywords]
 
-class load:
+
+class load(Config):
     def __init__(self, fORstr):
-        # TODO: find better (auto) way to set empty attributes
-        self.bp = {}
-        self.rg = {}
-        self.sr = {}
-        self.pf = {}
-        self.qf = {}
+        super().__init__()
         if type(fORstr) == list:
             # decide that multiple files provided
             for file in fORstr:
@@ -270,19 +291,22 @@ class dump:
         self.tree_keywordsR = {SR: "service-construct service-rule",
                                RG: "services charging rating-group",
                                BP: "services charging billing-plan",
-                               QF: "services quality-of-service qos-flow"}
+                               QF: "services quality-of-service qos-flow",
+                               MI: "services metering metering-instance"}
         self.output = ""
 
-        if type(obj) in [BP, RG, SR, QF]:
+        if type(obj) in self.tree_keywordsR.keys():
             self._printOneObj(obj, stdOut)
-        if type(obj) == dict:
+        elif type(obj) == dict:
             for val in obj.values():
                 self._printOneObj(val, stdOut)
-        if type(obj) == load:
-            for attr in ["bp", "rg", "sr", "qf"]:
+        elif type(obj) == load:
+            for attr in ["bp", "rg", "sr", "qf", "mi"]:
                 data = getattr(obj, attr)
                 for val in data.values():
                     self._printOneObj(val, stdOut)
+        else:
+            raise ValueError(f"expected input: {self.tree_keywordsR.keys()}, dict, load")
 
         if file:
             self._dumpToFile(file, file_append)
