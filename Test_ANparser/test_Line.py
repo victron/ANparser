@@ -268,3 +268,28 @@ class Test_5_ALLs(unittest.TestCase):
             with open("temp.dump", "r", newline=linesep) as dumpF:
                 result = dumpF.read()
             self.assertEqual(etalon, result, "data in file not eq")
+
+
+class Test_6_Create_Objects(unittest.TestCase):
+    def test_1_create_RG(self):
+        test_obj = SR(None)
+        test_obj.name = "kjfsaljeowiqjiwndnwan"
+        test_obj["failString"] = "something wrong"
+        test_obj.failString_A = "failString_A"
+        test_obj["admin-state"] = "enabled"
+        test_obj["priority"] = "100"
+        test_obj["service-data-flow-id"] = "1111"
+        test_obj["tcp-filter"] = "yes"
+        test_obj["service-activation"] = "always-on"
+        test_obj["install-default-bearer-packet-filters-on-ue"] = "m"
+
+        self.assertEqual("kjfsaljeowiqjiwndnwan", test_obj.name)
+        self.assertEqual(None, test_obj["failString"], "items not from keys, should not able to set")
+        self.assertEqual("failString_A", test_obj.failString_A, "python allowing sett custom attributes")
+        self.assertEqual("enabled", test_obj["admin-state"])
+        self.assertEqual("100", test_obj["priority"])
+        self.assertEqual("1111", test_obj["service-data-flow-id"])
+        self.assertEqual("yes", test_obj["tcp-filter"])
+        self.assertEqual("always-on", test_obj["service-activation"])
+        self.assertEqual("m", test_obj["install-default-bearer-packet-filters-on-ue"])
+
