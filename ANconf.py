@@ -73,11 +73,11 @@ RG_commands_meta = [("charging-method", "m"),
 RG_multiple_comands = ["service-rule", ]
 RG_ignored_comands = []
 
-BP_commands = []
 BP_multiple_comands = ["rating-group", ]
 BR_ignored_comands = ["fraud-charging", ]
 
 # ---------------- Generators ----------------
+
 MI_commands = [i[0] for i in MI_commands_meta]
 MI_attrs = {k: k.replace("-", "_") for k in MI_commands}
 MI_lists = {k: k.replace("-", "_") for k in MI_multiple_comands}
@@ -94,6 +94,7 @@ RG_attrs = {k: k.replace("-", "_") for k in RG_commands}
 RG_lists = {k: k.replace("-", "_") for k in RG_multiple_comands}
 RG_ignors = {k: k.replace("-", "_") for k in RG_ignored_comands}
 
+BP_commands = []
 BP_attrs = {k: k.replace("-", "_") for k in BP_commands}
 BP_lists = {k: k.replace("-", "_") for k in BP_multiple_comands}
 BP_ignors = {k: k.replace("-", "_") for k in BR_ignored_comands}
@@ -102,6 +103,13 @@ QF_commands = [i[0] for i in QF_commands_meta]
 QF_attrs = {k: k.replace("-", "_") for k in QF_commands}
 QF_lists = {k: k.replace("-", "_") for k in QF_multiple_comands}
 QF_ignors = {k: k.replace("-", "_") for k in QF_ignored_comands}
+
+# TODO: redu in better mapping
+attrs = {"BP": BP_attrs, "MI": MI_attrs, "QF": QF_attrs, "RG": RG_attrs, "SR": SR_attrs, }
+lists = {"BP": BP_lists, "MI": MI_lists, "QF": QF_lists, "RG": RG_lists, "SR": SR_lists, }
+# commands = {"BP": BP_commands, "MI": MI_commands, "QF": QF_commands, "RG": RG_commands, "SR": SR_commands, }
+ignors = {"BP": BP_ignors, "MI": MI_ignors, "QF": QF_ignors, "RG": RG_ignors, "SR": SR_ignors, }
+
 
 class Config:
     def __init__(self):
@@ -132,14 +140,14 @@ class Section:
         self.topObj = topObj
         self.closeObj = "!"
         self.end = False
+        if type(self) != Section:
+            self._init_child()
+
 
     def __getitem__(self, item):
-        if item in self.keywords:
-            return getattr(self, self.keywords[item])
-        if item in self.tree_keywords:
-            return getattr(self, self.tree_keywords[item])
-        if item in self.list_keywords:
-            return getattr(self, self.list_keywords[item])
+        all_keys = {**self.keywords, **self.tree_keywords, **self.list_keywords, **self.ignors_keywords}
+        return getattr(self, all_keys[item])
+
 
     def __setitem__(self, key, value):
         if key in self.keywords:
@@ -167,9 +175,19 @@ class Section:
             return self
         if self.prefix in self.tree_keywords.keys():
             newObj = self.tree_keywords[self.prefix](self)
+            newObj._init_child()
             newObj.name = self.parameter
             setattr(self, type(newObj).__name__, newObj)
             return newObj
+
+    def _init_child(self):
+        # overriding keywords based on created obj
+        obj_name = type(self).__name__
+        self.keywords = attrs[obj_name]
+        self.tree_keywords = {}
+        self.list_keywords = lists[obj_name]
+        self.ignors_keywords = ignors[obj_name]
+        self.allKeys = [*self.keywords, *self.tree_keywords, *self.list_keywords, *self.ignors_keywords]
 
     def _end(self, line):
         line = line.rstrip()
@@ -200,50 +218,17 @@ class TopObj(Section):
         if line == self.listSep:
             pass
 
+# creating namespaces, !!!!!!!!!! ned update, when adding new obj !!!!!!!!!!!!!!
+# class SR(TopObj):
+#     pass
+BP = type("BP", (TopObj,), {})
+QF = type("QF", (TopObj,), {})
+MI = type("MI", (TopObj,), {})
+RG = type("RG", (TopObj,), {})
+SR = type("SR", (TopObj,), {})
 
-class SR(TopObj):
-    def __init__(self, topObj):
-        super().__init__(topObj)
-        self.keywords = SR_attrs
-        self.tree_keywords = {}
-        self.list_keywords = SR_lists
-        self.allKeys = [*self.keywords, *self.tree_keywords, *self.list_keywords]
-
-
-class RG(TopObj):
-    def __init__(self, topObj):
-        super().__init__(topObj)
-        self.keywords = RG_attrs
-        self.tree_keywords = {}
-        self.list_keywords = RG_lists
-        self.allKeys = [*self.keywords, *self.tree_keywords, *self.list_keywords]
-
-
-class QF(TopObj):
-    def __init__(self, topObj):
-        super().__init__(topObj)
-        self.keywords = QF_attrs
-        self.tree_keywords = {}
-        self.list_keywords = QF_lists
-        self.allKeys = [*self.keywords, *self.tree_keywords, *self.list_keywords]
-
-
-class BP(TopObj):
-    def __init__(self, topObj):
-        super().__init__(topObj)
-        self.keywords = {}
-        self.tree_keywords = {}
-        self.list_keywords = BP_lists
-        self.ignors_keywords = BP_ignors
-        self.allKeys = [*self.keywords, *self.tree_keywords, *self.list_keywords, *self.ignors_keywords]
-
-class MI(TopObj):
-    def __init__(self, topObj):
-        super().__init__(topObj)
-        self.keywords = MI_attrs
-        self.tree_keywords = {}
-        self.list_keywords = MI_lists
-        self.allKeys = [*self.keywords, *self.tree_keywords, *self.list_keywords]
+# for attr in attrs.keys():
+#     globals()[attr] = type(attr, (TopObj,), {})
 
 
 class load(Config):

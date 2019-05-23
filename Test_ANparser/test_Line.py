@@ -284,7 +284,7 @@ class Test_6_Create_Objects(unittest.TestCase):
         test_obj["install-default-bearer-packet-filters-on-ue"] = "m"
 
         self.assertEqual("kjfsaljeowiqjiwndnwan", test_obj.name)
-        self.assertEqual(None, test_obj["failString"], "items not from keys, should not able to set")
+        # self.assertEqual(None, test_obj["failString"], "items not from keys, should not able to set")
         self.assertEqual("failString_A", test_obj.failString_A, "python allowing sett custom attributes")
         self.assertEqual("enabled", test_obj["admin-state"])
         self.assertEqual("100", test_obj["priority"])
@@ -292,4 +292,9 @@ class Test_6_Create_Objects(unittest.TestCase):
         self.assertEqual("yes", test_obj["tcp-filter"])
         self.assertEqual("always-on", test_obj["service-activation"])
         self.assertEqual("m", test_obj["install-default-bearer-packet-filters-on-ue"])
+        with self.assertRaises(KeyError) as cm:
+            failString = test_obj["failString"]
+        self.assertTrue("failString" in str(cm.exception))
+        # self.assertEqual(cm.exception, KeyError("failString"))
+
 
