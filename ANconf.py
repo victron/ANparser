@@ -7,6 +7,12 @@ logger = logging.getLogger(__name__)
 
 # top_sections = ("BP", "MI", "RG", "QF", "SR" )
 # top_sec = {"BP" : {}, "MI": {}, "RG": {}, "QF": {}, "SR": {}}
+top_keywords = {"service-construct service-rule": "SR",
+                "services charging rating-group": "RG",
+                "services charging billing-plan": "BP",
+                "services quality-of-service qos-flow": "QF",
+                "services metering metering-instance": "MI",
+                }
 
 #  should be in strict order, for correct dump working
 MI_commands_meta = [("admin-state", "m"), ]
@@ -136,26 +142,19 @@ class Section:
                               }
         self.list_keywords = {}
         self.ignors_keywords = {}
-        self.allKeys = [*self.keywords, *self.tree_keywords, *self.list_keywords, *self.ignors_keywords]
+        self.allKeys = {**self.keywords, **self.tree_keywords, **self.list_keywords, **self.ignors_keywords}
         self.topObj = topObj
         self.closeObj = "!"
         self.end = False
         if type(self) != Section:
             self._init_child()
 
-
     def __getitem__(self, item):
-        all_keys = {**self.keywords, **self.tree_keywords, **self.list_keywords, **self.ignors_keywords}
-        return getattr(self, all_keys[item])
-
+        return getattr(self, self.allKeys[item])
 
     def __setitem__(self, key, value):
-        if key in self.keywords:
-            setattr(self, self.keywords[key], value)
-        if key in self.tree_keywords:
-            setattr(self, self.tree_keywords[key], value)
-        if key in self.list_keywords:
-            setattr(self, self.list_keywords[key], value)
+        if key in self.allKeys:
+            setattr(self, self.allKeys[key], value)
 
     def set_param(self, line):
         self.parameter = line.split()[-1:][0]
@@ -187,7 +186,7 @@ class Section:
         self.tree_keywords = {}
         self.list_keywords = lists[obj_name]
         self.ignors_keywords = ignors[obj_name]
-        self.allKeys = [*self.keywords, *self.tree_keywords, *self.list_keywords, *self.ignors_keywords]
+        self.allKeys = {**self.keywords, **self.tree_keywords, **self.list_keywords, **self.ignors_keywords}
 
     def _end(self, line):
         line = line.rstrip()
@@ -218,6 +217,7 @@ class TopObj(Section):
         if line == self.listSep:
             pass
 
+
 # creating namespaces, !!!!!!!!!! ned update, when adding new obj !!!!!!!!!!!!!!
 # class SR(TopObj):
 #     pass
@@ -226,6 +226,7 @@ QF = type("QF", (TopObj,), {})
 MI = type("MI", (TopObj,), {})
 RG = type("RG", (TopObj,), {})
 SR = type("SR", (TopObj,), {})
+
 
 # for attr in attrs.keys():
 #     globals()[attr] = type(attr, (TopObj,), {})
@@ -339,6 +340,7 @@ class dump:
         else:
             with open(fileName, "w", newline="") as f:
                 f.write(self.output)
+
 
 # alias to dump class
 show = dump
