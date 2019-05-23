@@ -13,7 +13,11 @@ top_keywords = {"service-construct service-rule": "SR",
                 "services quality-of-service qos-flow": "QF",
                 "services metering metering-instance": "MI",
                 }
-
+top_keywordsR = {"SR": "service-construct service-rule",
+                 "RG": "services charging rating-group",
+                 "BP": "services charging billing-plan",
+                 "QF": "services quality-of-service qos-flow",
+                 "MI": "services metering metering-instance"}
 #  should be in strict order, for correct dump working
 MI_commands_meta = [("admin-state", "m"), ]
 MI_multiple_comands = ["rating-group", ]
@@ -133,13 +137,7 @@ class Section:
     def __init__(self, topObj=None):
         self.name = "Section"
         self.keywords = {}
-        # TODO: move in global scope or redu, same thing in dump class
-        self.tree_keywords = {"service-construct service-rule": SR,
-                              "services charging rating-group": RG,
-                              "services charging billing-plan": BP,
-                              "services quality-of-service qos-flow": QF,
-                              "services metering metering-instance": MI,
-                              }
+        self.tree_keywords = top_keywords
         self.list_keywords = {}
         self.ignors_keywords = {}
         self.allKeys = {**self.keywords, **self.tree_keywords, **self.list_keywords, **self.ignors_keywords}
@@ -173,7 +171,8 @@ class Section:
             setattr(self, self.keywords[self.prefix], self.parameter)
             return self
         if self.prefix in self.tree_keywords.keys():
-            newObj = self.tree_keywords[self.prefix](self)
+            newClass = type(self.tree_keywords[self.prefix], (TopObj,), {})
+            newObj = newClass(None)
             newObj._init_child()
             newObj.name = self.parameter
             setattr(self, type(newObj).__name__, newObj)
@@ -274,14 +273,10 @@ class load(Config):
 class dump:
     def __init__(self, obj: object = None, file=False, stdOut=False, file_append=False):
         # with open(file, "rw") as f:
-        self.tree_keywordsR = {SR: "service-construct service-rule",
-                               RG: "services charging rating-group",
-                               BP: "services charging billing-plan",
-                               QF: "services quality-of-service qos-flow",
-                               MI: "services metering metering-instance"}
+        self.tree_keywordsR = top_keywordsR
         self.output = ""
 
-        if type(obj) in self.tree_keywordsR.keys():
+        if type(obj).__name__ in self.tree_keywordsR.keys():
             self._printOneObj(obj, stdOut)
         elif type(obj) == dict:
             for val in obj.values():
@@ -306,7 +301,7 @@ class dump:
     def _printOneObj(self, obj, stdOut):
         if self.output != "":
             self.output += linesep
-        output = f"{self.tree_keywordsR[type(obj)]} {obj.name}{linesep}"
+        output = f"{self.tree_keywordsR[type(obj).__name__]} {obj.name}{linesep}"
         # NOTE: !!!!!!!!!!!!!!!!!!!!!
         # starting from python3.6 dicts is ordered
         commands = [command for command in obj.keywords.keys() if hasattr(obj, obj.keywords[command])]
@@ -322,7 +317,7 @@ class dump:
                 for member in members:
                     output += f" {group} {member}{linesep}"
                     # TODO: workaround for BP, need to decide how insert inner objects in a best way
-                    if type(obj) == BP and group == "rating-group":
+                    if type(obj).__name__ == "BP" and group == "rating-group":
                         output += f"  fraud-charging false{linesep}"
                     output += f" !{linesep}"
         output += f"!"

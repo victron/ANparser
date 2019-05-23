@@ -11,16 +11,16 @@ logger = logging.getLogger("__name__")
 
 pairs_Line = [
     {"in": "service-construct service-rule NAT_RULE_ANY",
-     "out": (SR, False, False, False)},
+     "out": ("SR", False, False, False)},
     {"in": " admin-state                                 enabled",
-     "out": (SR, True, False, False)},
+     "out": ("SR", True, False, False)},
     # {"in": "  type            v-csm", "out": ""},
     {"in": " packet-filter PF_test_11001",
-     "out": (SR, True, True, False)},
+     "out": ("SR", True, True, False)},
     {"in": " !",
-     "out": (SR, True, True, False)},
+     "out": ("SR", True, True, False)},
     {"in": "!",
-     "out": (SR, True, True, True)},
+     "out": ("SR", True, True, True)},
 
 ]
 
@@ -79,7 +79,7 @@ class Test_1_Objects(unittest.TestCase):
         for i, pair in enumerate(pairs_Line):
             line = pair["in"]
             obj = obj.set_param(line)
-            self.assertEqual(pair["out"][0], type(obj), f"error in parse method, line= {i}")
+            self.assertEqual(pair["out"][0], type(obj).__name__, f"error in parse method, line= {i}")
             self.assertEqual(pair["out"][1], hasattr(obj, "admin_state"), f"admin-state, line= {i}")
             self.assertEqual(pair["out"][2], hasattr(obj, "packet_filter"), f"packet-filter, line= {i}")
             self.assertEqual(pair["out"][3], obj.end, f"close flag, line= {i}")
