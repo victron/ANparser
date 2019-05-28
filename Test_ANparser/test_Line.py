@@ -2,7 +2,7 @@ import unittest
 import pickle
 from os import linesep
 # from ANparser import Line, LineRoot, LineCommand, LineEnd, SR
-from ANconf import Section, SR, load, dump
+from ANconf_ import Section, SR, load, dump
 
 import logging
 
@@ -274,9 +274,9 @@ class Test_6_Create_Objects(unittest.TestCase):
     def test_1_create_RG(self):
         test_obj = SR(None)
         test_obj.name = "kjfsaljeowiqjiwndnwan"
+        test_obj["admin-state"] = "enabled"
         test_obj["failString"] = "something wrong"
         test_obj.failString_A = "failString_A"
-        test_obj["admin-state"] = "enabled"
         test_obj["priority"] = "100"
         test_obj["service-data-flow-id"] = "1111"
         test_obj["tcp-filter"] = "yes"

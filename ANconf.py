@@ -1,293 +1,204 @@
 import logging
 import io
 from os import linesep
+from typing import Union
+import copy
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# top_sections = ("BP", "MI", "RG", "QF", "SR" )
-# top_sec = {"BP" : {}, "MI": {}, "RG": {}, "QF": {}, "SR": {}}
-top_keywords = {"service-construct service-rule": "SR",
-                "services charging rating-group": "RG",
-                "services charging billing-plan": "BP",
-                "services quality-of-service qos-flow": "QF",
-                "services metering metering-instance": "MI",
-                }
-top_keywordsR = {"SR": "service-construct service-rule",
-                 "RG": "services charging rating-group",
-                 "BP": "services charging billing-plan",
-                 "QF": "services quality-of-service qos-flow",
-                 "MI": "services metering metering-instance"}
-#  should be in strict order, for correct dump working
-MI_commands_meta = [("admin-state", "m"), ]
-MI_multiple_comands = ["rating-group", ]
-MI_ignored_comands = []
 
-QF_commands_meta = [("admin-state", "m"),
-                    ("rate-measurement-units", "m"),
-                    ("uplink-mbr", "m"),
-                    ("downlink-mbr", "m"),
-                    ("uplink-gbr", "m"),
-                    ("downlink-gbr", "m"),
-                    ("uplink-max-burst", "m"),
-                    ("uplink-guaranteed-burst", "m"),
-                    ("downlink-max-burst", "m"),
-                    ("downlink-guaranteed-burst", "m"),
-                    ("gate", "m"),
-                    ("priority", "m"),
-                    ("bearer-control", "m"),
-                    ("service-activation", "m"),
-                    ("aggregate-qos-flow", "m"),
-                    ]
-QF_multiple_comands = ["service-rule", ]
-QF_ignored_comands = []
-
-SR_commands_meta = [("admin-state", "m"),
-                    ("priority", "m"),
-                    ("service-data-flow-id", "m"),
-                    ("http-rule-group", "o"),
-                    ("application-rule-group", "o"),
-                    ("tcp-filter", "m"),
-                    ("service-activation", "m"),
-                    ("pcc-rule-name", "pcc"),
-                    ("install-default-bearer-packet-filters-on-ue", "m"),
-                    ]
-SR_multiple_comands = ["packet-filter"]
-SR_ignored_comands = []
-
-RG_commands_meta = [("charging-method", "m"),
-                    ("quota-id", "m"),
-                    ("priority", "m"),
-                    ("admin-state", "m"),
-                    ("multiplier", "m"),
-                    ("measurement-method", "m"),
-                    ("volume-measurement-count", "m"),
-                    ("volume-measurement-layer", "m"),
-                    ("tcp-retransmission", "m"),
-                    ("quota-hold-time", "m"),
-                    ("reporting-level", "m"),
-                    ("volume-threshold", "m"),
-                    ("credit-authorization-event", "m"),
-                    ("quota-black-list-timer", "m"),
-                    ("service-type", "m"),
-                    ("home-subscriber-charging", "m"),
-                    ("roamer-subscriber-charging", "m"),
-                    ("cdr-interim-time", "o"),
-                    ("enable-cdr", "m"),
-                    ("ocs-response-grace-period", "m"),
-                    ("service-activation", "m"),
-                    ("monitor-key-string", "pcc"),
-                    ("one-time-redirection", "o"),
-                    ("requested-unit-value", "m"),
-                    ]
-RG_multiple_comands = ["service-rule", ]
-RG_ignored_comands = []
-
-BP_multiple_comands = ["rating-group", ]
-BR_ignored_comands = ["fraud-charging", ]
-
-# ---------------- Generators ----------------
-
-MI_commands = [i[0] for i in MI_commands_meta]
-MI_attrs = {k: k.replace("-", "_") for k in MI_commands}
-MI_lists = {k: k.replace("-", "_") for k in MI_multiple_comands}
-MI_ignors = {k: k.replace("-", "_") for k in MI_ignored_comands}
-
-SR_commands = [i[0] for i in SR_commands_meta]
-SR_attrs = {k: k.replace("-", "_") for k in SR_commands}
-SR_lists = {k: k.replace("-", "_") for k in SR_multiple_comands}
-SR_ignors = {k: k.replace("-", "_") for k in SR_ignored_comands}
-# SR_attrsR = {v: k for k, v in SR_attrs.items()}
-# SR_listsR = {v: k for k, v in SR_lists.items()}
-RG_commands = [i[0] for i in RG_commands_meta]
-RG_attrs = {k: k.replace("-", "_") for k in RG_commands}
-RG_lists = {k: k.replace("-", "_") for k in RG_multiple_comands}
-RG_ignors = {k: k.replace("-", "_") for k in RG_ignored_comands}
-
-BP_commands = []
-BP_attrs = {k: k.replace("-", "_") for k in BP_commands}
-BP_lists = {k: k.replace("-", "_") for k in BP_multiple_comands}
-BP_ignors = {k: k.replace("-", "_") for k in BR_ignored_comands}
-
-QF_commands = [i[0] for i in QF_commands_meta]
-QF_attrs = {k: k.replace("-", "_") for k in QF_commands}
-QF_lists = {k: k.replace("-", "_") for k in QF_multiple_comands}
-QF_ignors = {k: k.replace("-", "_") for k in QF_ignored_comands}
-
-# TODO: redu in better mapping
-attrs = {"BP": BP_attrs, "MI": MI_attrs, "QF": QF_attrs, "RG": RG_attrs, "SR": SR_attrs, }
-lists = {"BP": BP_lists, "MI": MI_lists, "QF": QF_lists, "RG": RG_lists, "SR": SR_lists, }
-# commands = {"BP": BP_commands, "MI": MI_commands, "QF": QF_commands, "RG": RG_commands, "SR": SR_commands, }
-ignors = {"BP": BP_ignors, "MI": MI_ignors, "QF": QF_ignors, "RG": RG_ignors, "SR": SR_ignors, }
-
-
-class Config:
-    def __init__(self):
-        # TODO: find better (auto) way to set empty attributes
-        self.bp = {}
-        self.rg = {}
-        self.sr = {}
-        self.pf = {}
-        self.qf = {}
-        self.mi = {}
-
-
-class Section:
-    # TODO: redu via collections.MutableMapping
-    def __init__(self, topObj=None):
-        self.name = "Section"
-        self.keywords = {}
-        self.tree_keywords = top_keywords
-        self.list_keywords = {}
-        self.ignors_keywords = {}
-        self.allKeys = {**self.keywords, **self.tree_keywords, **self.list_keywords, **self.ignors_keywords}
-        self.topObj = topObj
-        self.closeObj = "!"
-        self.end = False
-        if type(self) != Section:
-            self._init_child()
-
-    def __getitem__(self, item):
-        return getattr(self, self.allKeys[item])
+class Common(dict):
+    def __init__(self, defaults):
+        super().__init__(defaults)
+        self._meta = {}
+        self.name = ""
 
     def __setitem__(self, key, value):
-        if key in self.allKeys:
-            setattr(self, self.allKeys[key], value)
+        if key not in self:
+            logger.error(f"error in {type(self).__name__}")
+            raise KeyError(key)
+        super().__setitem__(key, value)
 
-    def set_param(self, line):
-        self.parameter = line.split()[-1:][0]
-        prefixes = line.split()[:-1]
-        self.prefix = " ".join(prefixes)
-        if self.parameter == "!":
-            self._end(line)
-            return self
-        if self.prefix not in self.allKeys:
-            error = f"unknown in {type(self).__name__} command= '{self.prefix}'"
-            logger.error(error)
-            raise KeyError(error)
-        if self.prefix in self.ignors_keywords.keys():
-            return self
-        if self.prefix in self.keywords.keys():
-            setattr(self, self.keywords[self.prefix], self.parameter)
-            return self
-        if self.prefix in self.tree_keywords.keys():
-            newClass = type(self.tree_keywords[self.prefix], (TopObj,), {})
-            newObj = newClass(None)
-            newObj._init_child()
-            newObj.name = self.parameter
-            setattr(self, type(newObj).__name__, newObj)
+    def _set(self, prefix, parameter):
+        if type(self[prefix]) == str:
+            self[prefix] = parameter
+            return
+        if type(self[prefix]) == list:
+            newObj = self._meta[prefix](parameter)
+            self[prefix].append(newObj)
             return newObj
 
-    def _init_child(self):
-        # overriding keywords based on created obj
-        obj_name = type(self).__name__
-        self.keywords = attrs[obj_name]
-        self.tree_keywords = {}
-        self.list_keywords = lists[obj_name]
-        self.ignors_keywords = ignors[obj_name]
-        self.allKeys = {**self.keywords, **self.tree_keywords, **self.list_keywords, **self.ignors_keywords}
-
-    def _end(self, line):
-        line = line.rstrip()
-        if line == "!":
-            self.end = True
-
-    def show(self):
-        dump(self, False, True)
+    def __str__(self):
+        return self.name
 
 
-class TopObj(Section):
-    def __init__(self, topObj):
-        super().__init__(topObj)
-        self.listSep = 2 * " " + "!"
+class Config(Common):
+    def __init__(self, name):
+        super().__init__({"services charging billing-plan": [],
+                          "services charging rating-group": [],
+                          "service-construct service-rule": [], })
 
-    def set_param(self, line):
-        super().set_param(line)
-        if self.prefix in self.list_keywords.keys():
-            if hasattr(self, self.list_keywords[self.prefix]):
-                getattr(self, self.list_keywords[self.prefix]).append(self.parameter)
-            else:
-                setattr(self, self.list_keywords[self.prefix], [self.parameter])
+        self._meta = {"services charging billing-plan": BP,
+                      "services charging rating-group": RG,
+                      "service-construct service-rule": SR}
+        self.name = name
+
+    def __iadd__(self, other):
+        for key in self.keys():
+            self[key] += copy.copy(other[key])
         return self
 
-    def _end(self, line):
-        super()._end(line)
-        line = line.rstrip()
-        if line == self.listSep:
-            pass
+    def __add__(self, other):
+        self.__iadd__(other)
+        return copy.copy(self)
 
 
-# creating namespaces, !!!!!!!!!! ned update, when adding new obj !!!!!!!!!!!!!!
-# class SR(TopObj):
-#     pass
-BP = type("BP", (TopObj,), {})
-QF = type("QF", (TopObj,), {})
-MI = type("MI", (TopObj,), {})
-RG = type("RG", (TopObj,), {})
-SR = type("SR", (TopObj,), {})
+class BP(Common):
+    def __init__(self, name: str):
+        super().__init__({"rating-group": []})
+        self._meta = {"rating-group": self.RG, }
+        self.prefix = "services charging billing-plan"
+        self.name = name
+
+    class RG(Common):
+        def __init__(self, name):
+            super().__init__({"fraud-charging": ""})
+            self._meta = {"fraud-charging": str, }
+            self.prefix = "rating-group"
+            self.name = name
 
 
-# for attr in attrs.keys():
-#     globals()[attr] = type(attr, (TopObj,), {})
+class SR(Common):
+    def __init__(self, name: str):
+        super().__init__({"admin-state": "",
+                          "priority": "",
+                          "service-data-flow-id": "",
+                          "http-rule-group": "",
+                          "application-rule-group": "",
+                          "tcp-filter": "",
+                          "service-activation": "",
+                          "pcc-rule-name": "",
+                          "install-default-bearer-packet-filters-on-ue": "",
+                          "packet-filter": [], })
+
+        self._meta = {"packet-filter": str, }
+        self.prefix = "service-construct service-rule"
+        self.name = name
 
 
-class load(Config):
+class RG(Common):
+    def __init__(self, name: str):
+        super().__init__({"charging-method": "",
+                          "quota-id": "",
+                          "priority": "",
+                          "admin-state": "",
+                          "multiplier": "",
+                          "measurement-method": "",
+                          "volume-measurement-count": "",
+                          "volume-measurement-layer": "",
+                          "tcp-retransmission": "",
+                          "quota-hold-time": "",
+                          "reporting-level": "",
+                          "volume-threshold": "",
+                          "credit-authorization-event": "",
+                          "quota-black-list-timer": "",
+                          "service-type": "",
+                          "home-subscriber-charging": "",
+                          "roamer-subscriber-charging": "",
+                          "cdr-interim-time": "",
+                          "enable-cdr": "",
+                          "ocs-response-grace-period": "",
+                          "service-activation": "",
+                          "monitor-key-string": "",
+                          "one-time-redirection": "",
+                          "requested-unit-value": "",
+                          "service-rule": [], })
+        self._meta = {"service-rule": str, }
+        self.prefix = "services charging rating-group"
+        self.name = name
+
+
+class Load:
     def __init__(self, fORstr):
-        super().__init__()
+        self.config = Config("")
+
         if type(fORstr) == list:
             # decide that multiple files provided
             for file in fORstr:
-                data = self._fileORstr(file)
-                self._parser(data)
+                data = self.__fileORstr(file)
+                self.config += self._parser(data)
         else:
-            data = self._fileORstr(fORstr)
-            self._parser(data)
+            data = self.__fileORstr(fORstr)
+            self.config = self._parser(data)
 
-    def _fileORstr(self, fORstr):
+    def __fileORstr(self, fORstr):
         if "\n" in fORstr:
             # there is string with "\n", so it's not filePath
             return io.StringIO(fORstr)
         else:
             return io.open(fORstr, "r", encoding="utf-8")
 
+    def __get_level(self, line: str):
+        level = 0
+        while line[level] == " ":
+            level += 1
+        return level
+
+    def __get_prefix(self, line: str):
+        parameter = line.split()[-1:][0]
+        prefixes = line.split()[:-1]
+        prefix = " ".join(prefixes)
+        return prefix, parameter
+
     def _parser(self, data):
-        obj = Section()
+        config = Config("")
+        stack = []
+        stack.append(config)
         for line in data:
-            obj = obj.set_param(line)
-            if not obj.end:
+            level = self.__get_level(line)
+            prefix, parameter = self.__get_prefix(line)
+
+            if level > len(stack) - 2:
+                newObj = stack[-1]._set(prefix, parameter)
+                stack.append(newObj)
                 continue
 
-            # TODO: save in SR, RG, BP, QF attribute
-            if isinstance(obj, Section):
-                service = type(obj).__name__.lower()
-                if not hasattr(self, service):
-                    setattr(self, service, {})
-                getattr(self, service)[obj.name] = obj
-            else:
-                raise KeyError(f'unknow type {type(obj).__name__}')
-            obj = Section()
+            if level == len(stack) - 2:
+                if parameter == "!":
+                    continue
+                parent = stack[level]
+                newObj = parent._set(prefix, parameter)
+                stack.pop()
+                stack.append(newObj)
+                continue
 
+            if level < len(stack) - 2:
+                if parameter == "!":
+                    stack = stack[:level + 1]
+                    continue
         data.close()
+        return stack[0]
 
 
-class dump:
-    def __init__(self, obj: object = None, file=False, stdOut=False, file_append=False):
-        # with open(file, "rw") as f:
-        self.tree_keywordsR = top_keywordsR
+load = Load
+
+
+class Dump:
+    def __init__(self, obj: Union[object, list, Load], file=False, file_append=False):
         self.output = ""
-
-        if type(obj).__name__ in self.tree_keywordsR.keys():
-            self._printOneObj(obj, stdOut)
-        elif type(obj) == dict:
-            for val in obj.values():
-                self._printOneObj(val, stdOut)
-        elif type(obj) == load:
-            for attr in ["bp", "rg", "sr", "qf", "mi"]:
-                data = getattr(obj, attr)
-                for val in data.values():
-                    self._printOneObj(val, stdOut)
+        if type(obj) in Config("")._meta.values():
+            self.output += self._printOneObj(obj)
+        elif type(obj) == list:
+            for i in obj:
+                self.output += self._printOneObj(i)
+        elif type(obj) == Load:
+            lists = [k for k, v in obj.config.items() if type(v) == list]
+            for prefix in lists:
+                for o in obj.config[prefix]:
+                    self.output += self._printOneObj(o)
         else:
-            raise ValueError(f"expected input: {self.tree_keywordsR.keys()}, dict, load")
+            raise ValueError(f"expected input: {Union[object, list, Load]}")
 
         if file:
             self._dumpToFile(file, file_append)
@@ -295,37 +206,32 @@ class dump:
     def __str__(self):
         return self.output
 
-    def __repr__(self):
-        return self.output
-
-    def _printOneObj(self, obj, stdOut):
-        if self.output != "":
-            self.output += linesep
-        output = f"{self.tree_keywordsR[type(obj).__name__]} {obj.name}{linesep}"
-        # NOTE: !!!!!!!!!!!!!!!!!!!!!
-        # starting from python3.6 dicts is ordered
-        commands = [command for command in obj.keywords.keys() if hasattr(obj, obj.keywords[command])]
-        if commands:
-            max_keyword = max([len(command) for command in commands])  # for output justification
+    def _printOneObj(self, obj: object, level=0):
+        if self.output != "" and level == 0:
+            output = linesep
         else:
-            max_keyword = 0
-        for command in commands:
-            output += f" {command:{max_keyword}} {obj[command]}{linesep}"
-        for group in obj.list_keywords.keys():
-            if hasattr(obj, obj.list_keywords[group]):
-                members = getattr(obj, obj.list_keywords[group])
-                for member in members:
-                    output += f" {group} {member}{linesep}"
-                    # TODO: workaround for BP, need to decide how insert inner objects in a best way
-                    if type(obj).__name__ == "BP" and group == "rating-group":
-                        output += f"  fraud-charging false{linesep}"
-                    output += f" !{linesep}"
-        output += f"!"
+            output = ""
+        output += f"{' ' * level}{obj.prefix} {obj.name}{linesep}"
+        parameters = [p for p, v in obj.items() if v != "" and type(v) != list]
+        if len(parameters) > 0:
+            max_param = max([len(param) for param in parameters])
+            for param in parameters:
+                output += f"{' ' * (level + 1)}{param:{max_param}} {obj[param]}{linesep}"
+        list_param = [p for p, v in obj.items() if type(v) == list]
+        if len(list_param) > 0:  # recursion protection
+            list_param = list_param[0]
+            if len(obj[list_param]) != 0:
+                list_params = obj[list_param]
+                for param in list_params:
+                    if type(param) == str:  # recursion exit
+                        output += f"{' ' * (level + 1)}{list_param} {param}{linesep}"
+                        output += f"{' ' * (level + 1)}!{linesep}"
+                    elif hasattr(param, '__dict__'):
+                        output += self._printOneObj(param, level + 1)  # recursion
+                        output += linesep
 
-        if stdOut:
-            print(output)
-        self.output += output
-        # return output
+        output += f"{' ' * level}!"
+        return output
 
     def _dumpToFile(self, fileName, file_append):
         if file_append:
@@ -337,5 +243,5 @@ class dump:
                 f.write(self.output)
 
 
-# alias to dump class
-show = dump
+dump = Dump
+show = Dump

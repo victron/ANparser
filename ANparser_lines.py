@@ -1,5 +1,5 @@
 import logging
-from ANconf import SR_attrs, SR, roots
+from ANconf_ import SR_attrs, SR, roots
 
 
 logging.basicConfig(level=logging.DEBUG)
