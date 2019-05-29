@@ -9,23 +9,26 @@ logger = logging.getLogger(__name__)
 
 
 class Common(dict):
+    _meta = {}
+
     def __init__(self, defaults):
         super().__init__(defaults)
-        self._meta = {}
+        self._children = {}
         self.name = ""
 
     def __setitem__(self, key, value):
-        if key not in self:
+        if key not in self._meta.keys():
             logger.error(f"error in {type(self).__name__}")
             raise KeyError(key)
         super().__setitem__(key, value)
 
     def _set(self, prefix, parameter):
-        if type(self[prefix]) == str:
+        # used by Load class
+        if type(self._meta[prefix]) == str:
             self[prefix] = parameter
             return
-        if type(self[prefix]) == list:
-            newObj = self._meta[prefix](parameter)
+        if type(self._meta[prefix]) == list:
+            newObj = self._children[prefix](parameter)
             self[prefix].append(newObj)
             return newObj
 
@@ -34,14 +37,16 @@ class Common(dict):
 
 
 class Config(Common):
-    def __init__(self, name):
-        super().__init__({"services charging billing-plan": [],
-                          "services charging rating-group": [],
-                          "service-construct service-rule": [], })
+    _meta = {"services charging billing-plan": [],
+              "services charging rating-group": [],
+              "service-construct service-rule": [], }
 
-        self._meta = {"services charging billing-plan": BP,
-                      "services charging rating-group": RG,
-                      "service-construct service-rule": SR}
+    def __init__(self, name):
+        super().__init__(copy.deepcopy(self._meta))
+
+        self._children = {"services charging billing-plan": BP,
+                          "services charging rating-group": RG,
+                          "service-construct service-rule": SR}
         self.name = name
 
     def __iadd__(self, other):
@@ -55,66 +60,74 @@ class Config(Common):
 
 
 class BP(Common):
+    _meta = {"rating-group": []}
+
     def __init__(self, name: str):
-        super().__init__({"rating-group": []})
-        self._meta = {"rating-group": self.RG, }
+        super().__init__(copy.deepcopy(self._meta))
+        self._children = {"rating-group": self.RG, }
         self.prefix = "services charging billing-plan"
         self.name = name
 
     class RG(Common):
+        _meta = {"fraud-charging": ""}
+
         def __init__(self, name):
-            super().__init__({"fraud-charging": ""})
-            self._meta = {"fraud-charging": str, }
+            super().__init__(copy.deepcopy(self._meta))
+            self._children = {"fraud-charging": str, }
             self.prefix = "rating-group"
             self.name = name
 
 
 class SR(Common):
-    def __init__(self, name: str):
-        super().__init__({"admin-state": "",
-                          "priority": "",
-                          "service-data-flow-id": "",
-                          "http-rule-group": "",
-                          "application-rule-group": "",
-                          "tcp-filter": "",
-                          "service-activation": "",
-                          "pcc-rule-name": "",
-                          "install-default-bearer-packet-filters-on-ue": "",
-                          "packet-filter": [], })
+    _meta = {"admin-state": "",
+              "priority": "",
+              "service-data-flow-id": "",
+              "http-rule-group": "",
+              "application-rule-group": "",
+              "tcp-filter": "",
+              "service-activation": "",
+              "pcc-rule-name": "",
+              "install-default-bearer-packet-filters-on-ue": "",
+              "packet-filter": [], }
 
-        self._meta = {"packet-filter": str, }
+    def __init__(self, name: str):
+        super().__init__(copy.deepcopy(self._meta))
+
+        self._children = {"packet-filter": str, }
         self.prefix = "service-construct service-rule"
         self.name = name
 
 
 class RG(Common):
+    _meta = {"charging-method": "",
+              "quota-id": "",
+              "priority": "",
+              "admin-state": "",
+              "multiplier": "",
+              "measurement-method": "",
+              "volume-measurement-count": "",
+              "volume-measurement-layer": "",
+              "tcp-retransmission": "",
+              "quota-hold-time": "",
+              "reporting-level": "",
+              "volume-threshold": "",
+              "credit-authorization-event": "",
+              "quota-black-list-timer": "",
+              "service-type": "",
+              "home-subscriber-charging": "",
+              "roamer-subscriber-charging": "",
+              "cdr-interim-time": "",
+              "enable-cdr": "",
+              "ocs-response-grace-period": "",
+              "service-activation": "",
+              "monitor-key-string": "",
+              "one-time-redirection": "",
+              "requested-unit-value": "",
+              "service-rule": [], }
+
     def __init__(self, name: str):
-        super().__init__({"charging-method": "",
-                          "quota-id": "",
-                          "priority": "",
-                          "admin-state": "",
-                          "multiplier": "",
-                          "measurement-method": "",
-                          "volume-measurement-count": "",
-                          "volume-measurement-layer": "",
-                          "tcp-retransmission": "",
-                          "quota-hold-time": "",
-                          "reporting-level": "",
-                          "volume-threshold": "",
-                          "credit-authorization-event": "",
-                          "quota-black-list-timer": "",
-                          "service-type": "",
-                          "home-subscriber-charging": "",
-                          "roamer-subscriber-charging": "",
-                          "cdr-interim-time": "",
-                          "enable-cdr": "",
-                          "ocs-response-grace-period": "",
-                          "service-activation": "",
-                          "monitor-key-string": "",
-                          "one-time-redirection": "",
-                          "requested-unit-value": "",
-                          "service-rule": [], })
-        self._meta = {"service-rule": str, }
+        super().__init__(copy.deepcopy(self._meta))
+        self._children = {"service-rule": str, }
         self.prefix = "services charging rating-group"
         self.name = name
 
@@ -187,7 +200,7 @@ load = Load
 class Dump:
     def __init__(self, obj: Union[object, list, Load], file=False, file_append=False):
         self.output = ""
-        if type(obj) in Config("")._meta.values():
+        if type(obj) in Config("")._children.values():
             self.output += self._printOneObj(obj)
         elif type(obj) == list:
             for i in obj:

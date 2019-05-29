@@ -2,6 +2,7 @@ import unittest
 import pickle
 from os import linesep
 from ANconf import Load, Dump, load, dump, show, SR, RG, BP
+import copy
 
 import logging
 
@@ -124,6 +125,7 @@ class Test_1_Object(unittest.TestCase):
         for i, pair in enumerate(pair_text):
             obj = Load(pair["in"])
             self.assertTrue(isinstance(obj, Load), f"wrong object")
+            print(obj.config["services charging billing-plan"])
             self.assertEqual(pair["out"][1], len(obj.config["services charging billing-plan"]), f"obj num, line= {i}")
             self.assertEqual(pair["out"][2], len(obj.config["service-construct service-rule"]), f"line= {i}")
             # self.assertEqual(pair["out"][3], obj.end, f"close flag, line= {i}")
@@ -285,12 +287,14 @@ class Test_4_print(unittest.TestCase):
 class Test_6_Create_Objects(unittest.TestCase):
     def test_1_create_RG(self):
         test_obj = SR("kjfsaljeowiqjiwndnwan")
+        test_obj["admin-state"] = "enabled"
+        test_obj["priority"] = "100"
+
         with self.assertRaises(KeyError) as cm:
             test_obj["failString"] = "test-wrong-string"
         self.assertTrue("failString" in str(cm.exception), "waiting exeption, when trying to SET wrong key")
+
         test_obj.failString_A = "failString_A"      # TODO: at that moment it's allowed
-        test_obj["admin-state"] = "enabled"
-        test_obj["priority"] = "100"
         test_obj["service-data-flow-id"] = "1111"
         test_obj["tcp-filter"] = "yes"
         test_obj["service-activation"] = "always-on"
@@ -310,49 +314,49 @@ class Test_6_Create_Objects(unittest.TestCase):
 
 
 # ########### private tests ############
-class Test_100_print(unittest.TestCase):
-    # compare manualy output
-    def test_1_separated_files(self):
-        for i, file in enumerate(["private_BP_all.txt", "private_RG_all.txt", "private_SR_all.txt"]):
-            result = load(file)
-            print(vars(result))
-
-    def test_2_ALL(self):
-        for i, file in enumerate(["private_PARSE_ALL.txt"]):
-            result = load(file)
-            print(vars(result))
-
+# class Test_100_print(unittest.TestCase):
+#     # compare manualy output
+#     def test_1_separated_files(self):
+#         for i, file in enumerate(["private_BP_all.txt", "private_RG_all.txt", "private_SR_all.txt"]):
+#             result = load(file)
+#             print(vars(result))
+#
+#     def test_2_ALL(self):
+#         for i, file in enumerate(["private_PARSE_ALL.txt"]):
+#             result = load(file)
+#             print(vars(result))
+#
 
 
 ########### private tests ############
-class Test_100_ALLs(unittest.TestCase):
-    # load into objects,  then dump and compare files
-    def test_1_separated_files(self):
-        for i, file in enumerate(["private_BP_all.txt",
-                                  "private_RG_all.txt",
-                                  "private_SR_all.txt"
-                                  ]):
-            gen_object = load(file)
-            result = str(dump(gen_object))
-            with open(file, "r", newline=linesep) as etal:
-                etalon = etal.read()
-            self.assertEqual(etalon, result, "stdout not eq")
-
-            dump(gen_object, "temp.dump")
-            with open("temp.dump", "r", newline=linesep) as dumpF:
-                result = dumpF.read()
-            self.assertEqual(etalon, result, "data in file not eq")
-
-    def test_2_ALL(self):
-        for i, file in enumerate(["private_PARSE_ALL.txt"]):
-            result = load(file)
-            gen_object = load(file)
-            result = str(dump(gen_object))
-            with open(file, "r", newline=linesep) as etal:
-                etalon = etal.read()
-            self.assertEqual(etalon, result, "stdout not eq")
-
-            dump(gen_object, "temp.dump")
-            with open("temp.dump", "r", newline=linesep) as dumpF:
-                result = dumpF.read()
-            self.assertEqual(etalon, result, "data in file not eq")
+# class Test_100_ALLs(unittest.TestCase):
+#     # load into objects,  then dump and compare files
+#     def test_1_separated_files(self):
+#         for i, file in enumerate(["private_BP_all.txt",
+#                                   "private_RG_all.txt",
+#                                   "private_SR_all.txt"
+#                                   ]):
+#             gen_object = load(file)
+#             result = str(dump(gen_object))
+#             with open(file, "r", newline=linesep) as etal:
+#                 etalon = etal.read()
+#             self.assertEqual(etalon, result, "stdout not eq")
+#
+#             dump(gen_object, "temp.dump")
+#             with open("temp.dump", "r", newline=linesep) as dumpF:
+#                 result = dumpF.read()
+#             self.assertEqual(etalon, result, "data in file not eq")
+#
+#     def test_2_ALL(self):
+#         for i, file in enumerate(["private_PARSE_ALL.txt"]):
+#             result = load(file)
+#             gen_object = load(file)
+#             result = str(dump(gen_object))
+#             with open(file, "r", newline=linesep) as etal:
+#                 etalon = etal.read()
+#             self.assertEqual(etalon, result, "stdout not eq")
+#
+#             dump(gen_object, "temp.dump")
+#             with open("temp.dump", "r", newline=linesep) as dumpF:
+#                 result = dumpF.read()
+#             self.assertEqual(etalon, result, "data in file not eq")
