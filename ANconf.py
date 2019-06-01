@@ -114,7 +114,8 @@ class RG(Common):
 
 
 class MI(Common):
-    _meta = {"admin-state": "", }
+    _meta = {"admin-state": "",
+             "rating-group": []}
     _meta_child = {"rating-group": str, }
 
     def __init__(self, name: str):
@@ -126,11 +127,13 @@ class MI(Common):
 class Config(Common):
     _meta = {"services charging billing-plan": [],
              "services charging rating-group": [],
-             "service-construct service-rule": [], }
+             "service-construct service-rule": [],
+             "services metering metering-instance": []}
 
     _meta_child = {"services charging billing-plan": BP,
-                 "services charging rating-group": RG,
-                 "service-construct service-rule": SR}
+                   "services charging rating-group": RG,
+                   "service-construct service-rule": SR,
+                   "services metering metering-instance": MI}
 
     def __init__(self, name):
         super().__init__({})
