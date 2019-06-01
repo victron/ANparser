@@ -10,10 +10,10 @@ logger = logging.getLogger(__name__)
 
 class Common(dict):
     _meta = {}
+    _meta_child = {}
 
     def __init__(self, defaults):
         super().__init__(defaults)
-        self._children = {}
         self.name = ""
 
     def __setitem__(self, key, value):
@@ -28,7 +28,7 @@ class Common(dict):
             self[prefix] = parameter
             return
         if type(self._meta[prefix]) == list:
-            newObj = self._children[prefix](parameter)
+            newObj = self._meta_child[prefix](parameter)
             if self.get(prefix) is None:
                 self[prefix] = []
             self[prefix].append(newObj)
@@ -38,17 +38,103 @@ class Common(dict):
         return self.name
 
 
+class BP(Common):
+    _meta = {"rating-group": []}
+
+    def __init__(self, name: str):
+        super().__init__({})
+        self.prefix = "services charging billing-plan"
+        self.name = name
+
+    class RG(Common):
+        _meta = {"fraud-charging": ""}
+        _meta_child = {"fraud-charging": str, }
+
+        def __init__(self, name):
+            super().__init__({})
+            self.prefix = "rating-group"
+            self.name = name
+
+    _meta_child = {"rating-group": RG, }
+
+
+class SR(Common):
+    _meta = {"admin-state": "",
+             "priority": "",
+             "service-data-flow-id": "",
+             "http-rule-group": "",
+             "application-rule-group": "",
+             "tcp-filter": "",
+             "service-activation": "",
+             "pcc-rule-name": "",
+             "install-default-bearer-packet-filters-on-ue": "",
+             "packet-filter": [], }
+
+    _meta_child = {"packet-filter": str, }
+
+    def __init__(self, name: str):
+        super().__init__({})
+        self.prefix = "service-construct service-rule"
+        self.name = name
+
+
+class RG(Common):
+    _meta = {"charging-method": "",
+             "quota-id": "",
+             "priority": "",
+             "admin-state": "",
+             "multiplier": "",
+             "measurement-method": "",
+             "volume-measurement-count": "",
+             "volume-measurement-layer": "",
+             "tcp-retransmission": "",
+             "quota-hold-time": "",
+             "reporting-level": "",
+             "volume-threshold": "",
+             "credit-authorization-event": "",
+             "quota-black-list-timer": "",
+             "service-type": "",
+             "home-subscriber-charging": "",
+             "roamer-subscriber-charging": "",
+             "cdr-interim-time": "",
+             "enable-cdr": "",
+             "ocs-response-grace-period": "",
+             "service-activation": "",
+             "monitor-key-string": "",
+             "one-time-redirection": "",
+             "requested-unit-value": "",
+             "service-rule": [], }
+
+    _meta_child = {"service-rule": str, }
+
+    def __init__(self, name: str):
+        super().__init__({})
+        self.prefix = "services charging rating-group"
+        self.name = name
+
+
+class MI(Common):
+    _meta = {"admin-state": "", }
+    _meta_child = {"rating-group": str, }
+
+    def __init__(self, name: str):
+        super().__init__({})
+        self.prefix = "services metering metering-instance"
+        self.name = name
+
+
 class Config(Common):
     _meta = {"services charging billing-plan": [],
-              "services charging rating-group": [],
-              "service-construct service-rule": [], }
+             "services charging rating-group": [],
+             "service-construct service-rule": [], }
+
+    _meta_child = {"services charging billing-plan": BP,
+                 "services charging rating-group": RG,
+                 "service-construct service-rule": SR}
 
     def __init__(self, name):
         super().__init__({})
 
-        self._children = {"services charging billing-plan": BP,
-                          "services charging rating-group": RG,
-                          "service-construct service-rule": SR}
         self.name = name
 
     def __iadd__(self, other):
@@ -62,88 +148,6 @@ class Config(Common):
     def __add__(self, other):
         self.__iadd__(other)
         return copy.copy(self)
-
-
-class BP(Common):
-    _meta = {"rating-group": []}
-
-    def __init__(self, name: str):
-        super().__init__({})
-        self._children = {"rating-group": self.RG, }
-        self.prefix = "services charging billing-plan"
-        self.name = name
-
-    class RG(Common):
-        _meta = {"fraud-charging": ""}
-
-        def __init__(self, name):
-            super().__init__({})
-            self._children = {"fraud-charging": str, }
-            self.prefix = "rating-group"
-            self.name = name
-
-
-class SR(Common):
-    _meta = {"admin-state": "",
-              "priority": "",
-              "service-data-flow-id": "",
-              "http-rule-group": "",
-              "application-rule-group": "",
-              "tcp-filter": "",
-              "service-activation": "",
-              "pcc-rule-name": "",
-              "install-default-bearer-packet-filters-on-ue": "",
-              "packet-filter": [], }
-
-    def __init__(self, name: str):
-        super().__init__({})
-
-        self._children = {"packet-filter": str, }
-        self.prefix = "service-construct service-rule"
-        self.name = name
-
-
-class RG(Common):
-    _meta = {"charging-method": "",
-              "quota-id": "",
-              "priority": "",
-              "admin-state": "",
-              "multiplier": "",
-              "measurement-method": "",
-              "volume-measurement-count": "",
-              "volume-measurement-layer": "",
-              "tcp-retransmission": "",
-              "quota-hold-time": "",
-              "reporting-level": "",
-              "volume-threshold": "",
-              "credit-authorization-event": "",
-              "quota-black-list-timer": "",
-              "service-type": "",
-              "home-subscriber-charging": "",
-              "roamer-subscriber-charging": "",
-              "cdr-interim-time": "",
-              "enable-cdr": "",
-              "ocs-response-grace-period": "",
-              "service-activation": "",
-              "monitor-key-string": "",
-              "one-time-redirection": "",
-              "requested-unit-value": "",
-              "service-rule": [], }
-
-    def __init__(self, name: str):
-        super().__init__({})
-        self._children = {"service-rule": str, }
-        self.prefix = "services charging rating-group"
-        self.name = name
-
-
-class MI(Common):
-    _meta = {"admin-state": "",}
-    def __init__(self, name: str):
-        super().__init__({})
-        self._children = {"rating-group": str, }
-        self.prefix = "services metering metering-instance"
-        self.name = name
 
 
 class Load:
@@ -214,7 +218,7 @@ load = Load
 class Dump:
     def __init__(self, obj: Union[object, list, Load], file=False, file_append=False):
         self.output = ""
-        if type(obj) in Config("")._children.values():
+        if type(obj) in Config("")._meta_child.values():
             self.output += self._printOneObj(obj)
         elif type(obj) == list:
             for i in obj:
