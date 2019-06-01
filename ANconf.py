@@ -29,6 +29,8 @@ class Common(dict):
             return
         if type(self._meta[prefix]) == list:
             newObj = self._children[prefix](parameter)
+            if self.get(prefix) is None:
+                self[prefix] = []
             self[prefix].append(newObj)
             return newObj
 
@@ -42,7 +44,7 @@ class Config(Common):
               "service-construct service-rule": [], }
 
     def __init__(self, name):
-        super().__init__(copy.deepcopy(self._meta))
+        super().__init__({})
 
         self._children = {"services charging billing-plan": BP,
                           "services charging rating-group": RG,
@@ -50,8 +52,11 @@ class Config(Common):
         self.name = name
 
     def __iadd__(self, other):
-        for key in self.keys():
-            self[key] += copy.copy(other[key])
+        for key in other.keys():
+            if self.get(key) is None:
+                self[key] = copy.copy(other[key])
+            else:
+                self[key] += copy.copy(other[key])
         return self
 
     def __add__(self, other):
@@ -63,7 +68,7 @@ class BP(Common):
     _meta = {"rating-group": []}
 
     def __init__(self, name: str):
-        super().__init__(copy.deepcopy(self._meta))
+        super().__init__({})
         self._children = {"rating-group": self.RG, }
         self.prefix = "services charging billing-plan"
         self.name = name
@@ -72,7 +77,7 @@ class BP(Common):
         _meta = {"fraud-charging": ""}
 
         def __init__(self, name):
-            super().__init__(copy.deepcopy(self._meta))
+            super().__init__({})
             self._children = {"fraud-charging": str, }
             self.prefix = "rating-group"
             self.name = name
@@ -91,7 +96,7 @@ class SR(Common):
               "packet-filter": [], }
 
     def __init__(self, name: str):
-        super().__init__(copy.deepcopy(self._meta))
+        super().__init__({})
 
         self._children = {"packet-filter": str, }
         self.prefix = "service-construct service-rule"
@@ -126,9 +131,18 @@ class RG(Common):
               "service-rule": [], }
 
     def __init__(self, name: str):
-        super().__init__(copy.deepcopy(self._meta))
+        super().__init__({})
         self._children = {"service-rule": str, }
         self.prefix = "services charging rating-group"
+        self.name = name
+
+
+class MI(Common):
+    _meta = {"admin-state": "",}
+    def __init__(self, name: str):
+        super().__init__({})
+        self._children = {"rating-group": str, }
+        self.prefix = "services metering metering-instance"
         self.name = name
 
 

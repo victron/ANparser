@@ -127,7 +127,14 @@ class Test_1_Object(unittest.TestCase):
             self.assertTrue(isinstance(obj, Load), f"wrong object")
             print(obj.config["services charging billing-plan"])
             self.assertEqual(pair["out"][1], len(obj.config["services charging billing-plan"]), f"obj num, line= {i}")
-            self.assertEqual(pair["out"][2], len(obj.config["service-construct service-rule"]), f"line= {i}")
+            if i == 0:
+                with self.assertRaises(KeyError) as cm1:
+                    self.assertEqual(pair["out"][2], len(obj.config["service-construct service-rule"]), f"line= {i}")
+                self.assertTrue("service-construct service-rule" in str(cm1.exception),
+                                "waiting exeption, when trying to GET not existen (not created) key")
+            if i == 1:
+                # same as above, but now key present
+                self.assertEqual(pair["out"][2], len(obj.config["service-construct service-rule"]), f"line= {i}")
             # self.assertEqual(pair["out"][3], obj.end, f"close flag, line= {i}")
             # print(Dump(obj.config["services charging billing-plan"][0]))
 
@@ -213,6 +220,7 @@ class Test_2_RGs(unittest.TestCase):
         with open(pair_text_RG[0]["out"], "rb") as f:
             # pickle.dump(result, f)
             RGs_etalon = pickle.load(f)
+        result.config["services charging billing-plan"]
         for etal, res in zip(BPs_etalon.config["services charging billing-plan"],
                        result.config["services charging billing-plan"]):
             self.assertEqual(etal.name, res.name)
