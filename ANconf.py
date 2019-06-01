@@ -124,16 +124,43 @@ class MI(Common):
         self.name = name
 
 
+class QF(Common):
+    _meta = {"admin-state": "",
+             "rate-measurement-units": "",
+             "uplink-mbr": "",
+             "downlink-mbr": "",
+             "uplink-gbr": "",
+             "downlink-gbr": "",
+             "uplink-max-burst": "",
+             "uplink-guaranteed-burst": "",
+             "downlink-max-burst": "",
+             "downlink-guaranteed-burst": "",
+             "gate": "",
+             "priority": "",
+             "bearer-control": "",
+             "service-activation": "",
+             "aggregate-qos-flow": "",
+             "service-rule": []}
+
+    _meta_child = {"service-rule": str, }
+
+    def __init__(self, name: str):
+        super().__init__({})
+        self.prefix = "services quality-of-service qos-flow"
+        self.name = name
+
 class Config(Common):
     _meta = {"services charging billing-plan": [],
              "services charging rating-group": [],
              "service-construct service-rule": [],
-             "services metering metering-instance": []}
+             "services metering metering-instance": [],
+             "services quality-of-service qos-flow": []}
 
     _meta_child = {"services charging billing-plan": BP,
                    "services charging rating-group": RG,
                    "service-construct service-rule": SR,
-                   "services metering metering-instance": MI}
+                   "services metering metering-instance": MI,
+                   "services quality-of-service qos-flow": QF}
 
     def __init__(self, name):
         super().__init__({})
