@@ -321,6 +321,25 @@ class Test_6_Create_Objects(unittest.TestCase):
         self.assertTrue("failString" in str(cm1.exception), "waiting exeption, when trying to GET wrong key")
 
 
+    def test_2_create_SR(self):
+        # create SR with parameters in random order
+        test_obj = SR("SR_test-1010")
+        test_obj["admin-state"] = "enabled"
+        test_obj["priority"] = "320"
+        test_obj["service-data-flow-id"] = "1011"
+        test_obj["http-rule-group"] = "HRG-test_1011"
+        test_obj["tcp-filter"] = "all"
+        test_obj["service-activation"] = "external-activation"
+        test_obj["install-default-bearer-packet-filters-on-ue"] = "disabled" # wrong order with next line
+        test_obj["pcc-rule-name"] = "1010"
+        test_obj["packet-filter"] = ["PF_test_01", "PF_test_02", "PF_test_03", "PF_test_04"]
+
+        test_obj_dump = show(test_obj).output
+        with open("test_parm_order.txt", "r", newline=linesep) as f:
+            etalon = f.read()
+
+        self.assertEqual(etalon, test_obj_dump, "parameters in wrong order")
+
 # ########### private tests ############
 # class Test_100_print(unittest.TestCase):
 #     # compare manualy output

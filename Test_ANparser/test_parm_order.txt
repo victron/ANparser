@@ -1,0 +1,18 @@
+service-construct service-rule SR_test-1010
+ admin-state                                 enabled
+ priority                                    320
+ service-data-flow-id                        1011
+ http-rule-group                             HRG-test_1011
+ tcp-filter                                  all
+ service-activation                          external-activation
+ pcc-rule-name                               1010
+ install-default-bearer-packet-filters-on-ue disabled
+ packet-filter PF_test_01
+ !
+ packet-filter PF_test_02
+ !
+ packet-filter PF_test_03
+ !
+ packet-filter PF_test_04
+ !
+!

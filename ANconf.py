@@ -267,13 +267,14 @@ class Dump:
     def __str__(self):
         return self.output
 
-    def _printOneObj(self, obj: object, level=0):
+    def _printOneObj(self, obj, level=0):
         if self.output != "" and level == 0:
             output = linesep
         else:
             output = ""
         output += f"{' ' * level}{obj.prefix} {obj.name}{linesep}"
-        parameters = [p for p, v in obj.items() if v != "" and type(v) != list]
+        # parameters = [p for p, v in obj.items() if v != "" and type(v) != list]
+        parameters = [k for k in type(obj)._meta.keys() if obj.get(k) is not None and type(type(obj)._meta[k]) != list]
         if len(parameters) > 0:
             max_param = max([len(param) for param in parameters])
             for param in parameters:
