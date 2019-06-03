@@ -334,7 +334,7 @@ class Test_6_Create_Objects(unittest.TestCase):
         test_obj["pcc-rule-name"] = "1010"
         test_obj["packet-filter"] = ["PF_test_01", "PF_test_02", "PF_test_03", "PF_test_04"]
 
-        test_obj_dump = show(test_obj).output
+        test_obj_dump = Dump(test_obj).output
         with open("test_parm_order.txt", "r", newline=linesep) as f:
             etalon = f.read()
 

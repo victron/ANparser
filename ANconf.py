@@ -306,4 +306,4 @@ class Dump:
 
 
 dump = Dump
-show = Dump
+show = lambda obj: print(Dump(obj))
