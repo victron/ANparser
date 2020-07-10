@@ -68,7 +68,9 @@ class SR(Common):
              "service-activation": "",
              "pcc-rule-name": "",
              "install-default-bearer-packet-filters-on-ue": "",
-             "packet-filter": [], }
+             "packet-filter": [],
+             "domain-rule-group": "",
+             "tls-rule-group": ""}
 
     _meta_child = {"packet-filter": str, }
 
